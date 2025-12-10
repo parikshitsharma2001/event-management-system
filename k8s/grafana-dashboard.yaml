@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+data:
+  services-dashboard.json: |
+    {
+      "title": "Event Ticketing Services",
+      "panels": [
+        {
+          "title": "Service Health",
+          "type": "stat",
+          "targets": [
+            {"expr": "up", "legendFormat": "{{application}}"}
+          ]
+        },
+        {
+          "title": "Memory Usage",
+          "type": "graph", 
+          "targets": [
+            {"expr": "process_resident_memory_bytes", "legendFormat": "{{application}}"}
+          ]
+        },
+        {
+          "title": "CPU Usage",
+          "type": "graph",
+          "targets": [
+            {"expr": "system_cpu_usage", "legendFormat": "{{application}}"}
+          ]
+        }
+      ]
+    }

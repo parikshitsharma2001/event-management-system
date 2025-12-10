@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seating-service
+  labels:
+    app: seating-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: seating-service
+  template:
+    metadata:
+      labels:
+        app: seating-service
+    spec:
+      containers:
+        - name: seating-service
+          image: seating-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://seatingdb:5432/appdb"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "appuser"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "changeme123"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 40
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seating-service
+  labels:
+    app: seating-service
+spec:
+  ports:
+    - port: 8082
+      targetPort: 8082
+      protocol: TCP
+      name: http
+      nodePort: 30084
+  selector:
+    app: seating-service
+  type: NodePort

@@ -1,0 +1,309 @@
+version: '3.8'
+
+services:
+  # User Service Database
+  userdb:
+    image: postgres:14-alpine
+    container_name: userdb
+    environment:
+      POSTGRES_DB: userdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+    networks:
+      - ticketing-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Seating Service Database
+  seatingdb:
+    image: postgres:14-alpine
+    container_name: seatingdb
+    environment:
+      POSTGRES_DB: seatingdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - seating-db-data:/var/lib/postgresql/data
+    networks:
+      - ticketing-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Payment Service Database
+  paymentdb:
+    image: postgres:14-alpine
+    container_name: paymentdb
+    environment:
+      POSTGRES_DB: paymentdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - payment-db-data:/var/lib/postgresql/data
+    networks:
+      - ticketing-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Catalogue Service Database
+  catalogdb:
+    image: postgres:14-alpine
+    container_name: catalogdb
+    environment:
+      POSTGRES_DB: catalogdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5436:5432"
+    volumes:
+      - catalogue-db-data:/var/lib/postgresql/data
+    networks:
+      - ticketing-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  # New Catalog Database for Catalog Service
+  catalog-db:
+    image: postgres:16
+    container_name: catalog-db
+    restart: always
+    environment:
+      POSTGRES_USER: catalog_user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: catalog_db
+    ports:
+      - "5438:5432"
+    volumes:
+      - catalog_data:/var/lib/postgresql/data
+    networks:
+      - catalog-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U catalog_user -d catalog_db"]
+      interval: 5s
+      retries: 5
+      start_period: 5s  
+
+  # Order Service Database
+  orderdb:
+    image: postgres:14-alpine
+    container_name: orderdb
+    environment:
+      POSTGRES_DB: orderdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5437:5432"
+    volumes:
+      - order-db-data:/var/lib/postgresql/data
+    networks:
+      - ticketing-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # User Service
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://userdb:5432/userdb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+    depends_on:
+      userdb:
+        condition: service_healthy
+    networks:
+      - ticketing-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Seating Service
+  seating-service:
+    build:
+      context: ./seating-service
+      dockerfile: Dockerfile
+    container_name: seating-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://seatingdb:5432/seatingdb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+    depends_on:
+      seatingdb:
+        condition: service_healthy
+    networks:
+      - ticketing-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Payment Service
+  payment-service:
+    build:
+      context: ./payment-service
+      dockerfile: Dockerfile
+    container_name: payment-service
+    ports:
+      - "4004:4004"
+    environment:
+      PORT: 4004
+      DATABASE_HOST: paymentdb
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: paymentdb
+      ORDER_CALLBACK_URL: http://order-service:4003/v1/payments/callback
+    depends_on:
+      paymentdb:
+        condition: service_healthy
+    networks:
+      - ticketing-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Order Service
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    container_name: order-service
+    ports:
+      - "4003:4003"
+    environment:
+      PORT: 4003
+      DATABASE_HOST: orderdb
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: orderdb
+      CATALOG_URL: http://catalog-service:4001
+      SEATING_URL: http://seating-service:8082
+      PAYMENT_URL: http://payment-service:4004
+      NOTIFICATION_URL: http://notification-service:4005
+      TAX_PERCENT: 5
+    depends_on:
+      orderdb:
+        condition: service_healthy
+    networks:
+      - ticketing-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Catalog Service
+  catalog-service:
+    build:
+      context: ./catalog-service
+      dockerfile: Dockerfile
+    container_name: catalog-service
+    ports:
+      - "4001:4001"
+    environment:
+      PORT: 4001
+      DATABASE_HOST: catalogdb
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: catalogdb
+    depends_on:
+      catalogdb:
+        condition: service_healthy
+    networks:
+      - ticketing-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+
+  # Prometheus for monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - ticketing-network
+
+  # Grafana for dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/services-dashboard.json
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    networks:
+      - ticketing-network
+
+volumes:
+  user-db-data:
+  seating-db-data:
+  payment-db-data:
+  catalogue-db-data:
+  order-db-data:
+  prometheus-data:
+  grafana-data:
+  catalog_data:
+
+networks:
+  ticketing-network:
+    driver: bridge
+  catalog-net:
+    driver: bridge
