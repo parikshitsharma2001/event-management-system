@@ -20,7 +20,7 @@ import {
 } from '../dto/seating.dto';
 import { SeatStatus } from '../entities/seat.entity';
 
-@Controller('v1/seats')
+@Controller()
 export class SeatingController {
   constructor(private readonly seatingService: SeatingService) { }
 
@@ -29,7 +29,7 @@ export class SeatingController {
     return { ok: true, service: 'seating-service' };
   }
 
-  @Get('availability')
+  @Get('v1/seats/availability')
   async getSeatAvailability(@Query('eventId', ParseIntPipe) eventId: number) {
     try {
       return await this.seatingService.getSeatAvailability(eventId);
@@ -38,7 +38,7 @@ export class SeatingController {
     }
   }
 
-  @Get()
+  @Get('v1/seats')
   async getSeats(
     @Query('eventId', ParseIntPipe) eventId: number,
     @Query('status') status?: string,
@@ -51,7 +51,7 @@ export class SeatingController {
     }
   }
 
-  @Get(':id')
+  @Get('v1/seats/:id')
   async getSeatById(@Param('id', ParseIntPipe) id: number) {
     try {
       return await this.seatingService.getSeatById(id);
@@ -60,7 +60,7 @@ export class SeatingController {
     }
   }
 
-  @Get('order/:orderId')
+  @Get('v1/seats/order/:orderId')
   async getSeatsByOrderId(@Param('orderId') orderId: string) {
     try {
       return await this.seatingService.getSeatsByOrderId(orderId);
@@ -69,7 +69,7 @@ export class SeatingController {
     }
   }
 
-  @Post('reserve')
+  @Post('v1/seats/reserve')
   async reserveSeats(
     @Req() req: Request,
     @Body() body: SeatReservationRequest,
@@ -85,7 +85,7 @@ export class SeatingController {
     }
   }
 
-  @Post('allocate')
+  @Post('v1/seats/allocate')
   async allocateSeats(@Body() body: SeatAllocationRequest, @Res() res: Response) {
     try {
       await this.seatingService.allocateSeats(body);
@@ -95,7 +95,7 @@ export class SeatingController {
     }
   }
 
-  @Post('release')
+  @Post('v1/seats/release')
   async releaseSeats(@Body() seatIds: number[], @Res() res: Response) {
     try {
       await this.seatingService.releaseSeats(seatIds);
@@ -105,7 +105,7 @@ export class SeatingController {
     }
   }
 
-  @Post()
+  @Post('v1/seats')
   async createSeat(@Body() body: CreateSeatDto, @Res() res: Response) {
     try {
       const seat = await this.seatingService.createSeat(body);
@@ -115,7 +115,7 @@ export class SeatingController {
     }
   }
 
-  @Patch(':id/block')
+  @Patch('v1/seats/:id/block')
   async blockSeat(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
     try {
       await this.seatingService.blockSeat(id);
@@ -125,7 +125,7 @@ export class SeatingController {
     }
   }
 
-  @Patch(':id/unblock')
+  @Patch('v1/seats/:id/unblock')
   async unblockSeat(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
     try {
       await this.seatingService.unblockSeat(id);

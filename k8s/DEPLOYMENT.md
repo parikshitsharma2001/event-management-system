@@ -80,6 +80,7 @@ kubectl apply -f k8s/catalogdb.yaml -n event-app
 kubectl apply -f k8s/seatingdb.yaml -n event-app
 kubectl apply -f k8s/orderdb.yaml -n event-app
 kubectl apply -f k8s/paymentdb.yaml -n event-app
+kubectl apply -f k8s/redis.yaml -n event-app
 ```
 
 Wait for them to become ready:
@@ -92,6 +93,7 @@ Optional (wait with timeout):
 
 ```bash
 kubectl wait --for=condition=ready pod -l app=userdb --timeout=180s
+kubectl wait --for=condition=ready pod -l app=redis --timeout=180s
 ```
 
 ---

@@ -187,7 +187,7 @@ curl -X POST http://localhost:4003/v1/orders \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: abc123" \
   -d '{
-    "user_id": "101",
+    "user_id": 101,
     "event_id": 101,
     "seats": [1, 2, 3]
   }'

@@ -39,12 +39,10 @@ The application consists of five independent microservices:
 ### Technology Stack
 
 **Backend Technologies:**
-- **Java 11** with **Spring Boot 2.7.18** (User Service, Seating Service)
 - **TypeScript** with **NestJS** (Payment Service, Order Service, Catalog Service)
 
 **Data Layer:**
 - **PostgreSQL** - Primary relational database for all services
-- **Spring Data JPA** - ORM for Java services
 - **TypeORM** - ORM for NestJS service
 
 **Security & Authentication:**
@@ -90,13 +88,12 @@ The application consists of five independent microservices:
 ### Required Software
 
 **Development Tools:**
-- Java 11 or higher
-- Maven 3.6+
 - Node.js 21 or higher
 - Git
 
 **Databases & Caching:**
 - PostgreSQL 8.0 or higher
+- Redis 7 or higher
 
 **Containerization:**
 - Docker Desktop
@@ -108,12 +105,6 @@ The application consists of five independent microservices:
 Ensure all software is properly installed and configured:
 
 ```bash
-# Verify Java installation
-java -version
-
-# Verify Maven
-mvn -version
-
 # Verify Node.js
 node -version
 
@@ -127,11 +118,11 @@ kubectl version --client
 ---
 ## 3. Core Components
 
-### 3.1 User Service (Java/Spring Boot)
+### 3.1 User Service (TypeScript/NestJS)
 
 **Port:** 8081  
 **Database:** userdb  
-**Technology:** Java 11, Spring Boot 2.7.18, Spring Data JPA
+**Technology:** TypeScript, NestJS 10, TypeORM, PostgreSQL
 
 **Key Features:**
 - User registration with comprehensive validation
@@ -140,26 +131,32 @@ kubectl version --client
 - User search and filtering capabilities
 - Account status management (active/inactive/blocked)
 - Password encryption using BCrypt
-- Spring Security integration
+- Prometheus metrics integration
 
 **Project Structure:**
 ```
 user-service/
 ├── src/
-│   └── main/
-│       ├── java/com/ticketing/userservice/
-│       │   ├── controller/         # REST controllers
-│       │   ├── service/            # Business logic
-│       │   ├── repository/         # Data access layer
-│       │   ├── model/              # Entity models
-│       │   ├── dto/                # Data Transfer Objects
-│       │   ├── security/           # JWT & auth config
-│       │   ├── config/             # Application config
-│       │   └── exception/          # Exception handlers
-│       └── resources/
-│           └── application.yml     # Configuration
+│   ├── app.module.ts               # Main application module
+│   ├── main.ts                     # Application entry point
+│   ├── config/
+│   │   └── database.ts             # Database configuration
+│   └── users/
+│       ├── controller/
+│       │   └── users.controller.ts # REST endpoints
+│       ├── service/
+│       │   └── users.service.ts    # Business logic
+│       ├── repository/
+│       │   ├── users.command.ts    # Write operations
+│       │   └── users.query.ts      # Read operations
+│       ├── entities/
+│       │   └── user.entity.ts      # User entity
+│       ├── dto/
+│       │   └── user.dto.ts         # DTOs
+│       └── users.module.ts
 ├── Dockerfile
-├── pom.xml
+├── package.json
+├── tsconfig.json
 └── README.md
 ```
 
@@ -178,39 +175,56 @@ user-service/
 
 ---
 
-### 3.2 Seating Service (Java/Spring Boot)
+### 3.2 Seating Service (TypeScript/NestJS)
 
 **Port:** 8082  
 **Database:** seatingdb  
-**Technology:** Java 11, Spring Boot 2.7.18, Spring Data JPA
+**Cache:** Redis  
+**Technology:** TypeScript, NestJS 10, TypeORM, PostgreSQL, Redis 7
 
 **Key Features:**
 - Real-time seat availability tracking
 - Temporary seat reservations with 15-minute TTL
+- **Redis-based automatic expiration** of reservations
 - Automatic expiration and cleanup of expired reservations
 - Pessimistic locking to prevent race conditions
 - Seat allocation for confirmed orders
 - Comprehensive availability reports by event/venue
+- Scheduled cron jobs for reservation cleanup
 
 **Project Structure:**
 ```
 seating-service/
 ├── src/
-│   └── main/
-│       ├── java/com/ticketing/seatingservice/
-│       │   ├── controller/         # REST endpoints
-│       │   ├── service/            # Reservation logic
-│       │   ├── repository/         # JPA repositories
-│       │   ├── model/              # Seat entities
-│       │   ├── dto/                # Request/Response DTOs
-│       │   ├── config/             # JPA config
-│       │   └── exception/          # Custom exceptions
-│       └── resources/
-│           └── application.yml
+│   ├── app.module.ts               # Main application module
+│   ├── main.ts                     # Application entry point
+│   ├── config/
+│   │   ├── database.ts             # Database configuration
+│   │   └── redis.ts                # Redis configuration
+│   └── seating/
+│       ├── controller/
+│       │   └── seating.controller.ts
+│       ├── service/
+│       │   └── seating.service.ts  # Includes Redis operations
+│       ├── repository/
+│       │   ├── seating.command.ts
+│       │   └── seating.query.ts
+│       ├── entities/
+│       │   └── seat.entity.ts
+│       ├── dto/
+│       │   └── seating.dto.ts
+│       └── seating.module.ts
 ├── Dockerfile
-├── pom.xml
+├── package.json
+├── tsconfig.json
 └── README.md
 ```
+
+**Redis Integration:**
+- Stores reservation metadata with automatic TTL
+- Key pattern: `seat:reservation:{reservationId}`
+- Automatic cleanup via Redis expiry and scheduled tasks
+- Fallback to database queries for resilience
 
 **Database Tables:**
 - `seats` - Seat inventory and status
@@ -479,7 +493,7 @@ order-service/
     │ Service  │  │ Service  │  │ Service  │  │ Service  │  │ Service  │
     │          │  │          │  │          │  │          │  │          │
     │ :8081    │  │ :8082    │  │ :4004    │  │ :8000    │  │ :4003    │
-    │ Java     │  │ Java     │  │ NestJS   │  │ FastAPI  │  │ NestJS   │
+    │ NestJS   │  │ NestJS   │  │ NestJS   │  │ FastAPI  │  │ NestJS   │
     └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘
          │             │             │             │             │
          ▼             ▼             ▼             ▼             ▼
@@ -1712,18 +1726,21 @@ event-ticketing-and-seat-reservation/
 
 **User Service Dockerfile:**
 ```dockerfile
-FROM maven:3.8.5-openjdk-11 AS build
+FROM node:21-alpine AS builder
 WORKDIR /app
-COPY pom.xml .
-RUN mvn dependency:go-offline
+COPY package*.json ./
+RUN npm install
+COPY tsconfig.json ./
 COPY src ./src
-RUN mvn clean package -DskipTests
+RUN npm run build
 
-FROM openjdk:11-jre-slim
+FROM node:21-alpine
 WORKDIR /app
-COPY --from=build /app/target/user-service-0.0.1-SNAPSHOT.jar app.jar
-EXPOSE 8081
-ENTRYPOINT ["java", "-jar", "app.jar"]
+COPY --from=builder /app/dist ./dist
+COPY package*.json ./
+RUN npm install --only=production
+EXPOSE 4004
+CMD ["node", "dist/main.js"]
 ```
 
 **Payment Service Dockerfile:**
@@ -1800,9 +1817,9 @@ services:
     ports:
       - "8081:8081"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/userdb
-      SPRING_DATASOURCE_USERNAME: admin
-      SPRING_DATASOURCE_PASSWORD: admin123
+      DATASOURCE_URL: jdbc:postgresql://postgres:5432/userdb
+      DATASOURCE_USERNAME: admin
+      DATASOURCE_PASSWORD: admin123
       JWT_SECRET: your-secret-key-here-make-it-long-and-secure
       JWT_EXPIRATION: 3600000
     depends_on:
@@ -1821,9 +1838,9 @@ services:
     ports:
       - "8082:8082"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/seatingdb
-      SPRING_DATASOURCE_USERNAME: admin
-      SPRING_DATASOURCE_PASSWORD: admin123
+      DATASOURCE_URL: jdbc:postgresql://postgres:5432/seatingdb
+      DATASOURCE_USERNAME: admin
+      DATASOURCE_PASSWORD: admin123
       RESERVATION_TTL_SECONDS: 900
     depends_on:
       postgres:
@@ -2681,14 +2698,14 @@ https://github.com/parikshitsharma2001/event-ticketing-and-seat-reservation
 ```
 Branch: main
 Path: /user-service
-Technologies: Java 11, Spring Boot, PostgreSQL, JWT
+Technologies: TypeScript, NestJS, PostgreSQL, TypeORM
 ```
 
 **Seating Service:**
 ```
 Branch: main
 Path: /seating-service
-Technologies: Java 11, Spring Boot, PostgreSQL
+Technologies: TypeScript, NestJS, PostgreSQL, TypeORM
 ```
 
 **Payment Service:**
@@ -2832,7 +2849,6 @@ Technologies: TypeScript, NestJS, PostgreSQL, TypeORM
 ### 12.1 Planned Features
 
 **API Gateway Integration:**
-- Spring Cloud Gateway or Kong
 - Centralized authentication
 - Request aggregation
 - API versioning
@@ -2966,7 +2982,7 @@ kubectl top nodes
 The Event Ticketing and Seat Reservation System demonstrates a comprehensive implementation of microservices architecture with industry best practices. The system successfully addresses key challenges in distributed systems including:
 
 **Technical Achievements:**
-- Polyglot microservices with Java, and TypeScript
+- Polyglot microservices with TypeScript
 - Database-per-service pattern with complete data isolation
 - Idempotent payment processing
 - Automatic seat reservation expiration
@@ -2999,8 +3015,6 @@ This system provides a solid foundation for a production-grade event ticketing p
 ## Appendix
 
 ### A. Technology Versions
-- Java: 11
-- Spring Boot: 2.7.18
 - Node.js: 21
 - PostgreSQL: 14
 - Docker: 20.10+

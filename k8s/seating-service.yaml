@@ -21,15 +21,25 @@ spec:
           ports:
             - containerPort: 8082
           env:
-            - name: SPRING_DATASOURCE_URL
-              value: "jdbc:postgresql://seatingdb:5432/appdb"
-            - name: SPRING_DATASOURCE_USERNAME
+            - name: PORT
+              value: "8082"
+            - name: DATABASE_HOST
+              value: "seatingdb"
+            - name: DATABASE_PORT
+              value: "5432"
+            - name: DATABASE_USERNAME
               value: "appuser"
-            - name: SPRING_DATASOURCE_PASSWORD
+            - name: DATABASE_PASSWORD
               value: "changeme123"
+            - name: DATABASE_NAME
+              value: "appdb"
+            - name: REDIS_HOST
+              value: "redis"
+            - name: REDIS_PORT
+              value: "6379"
           livenessProbe:
             httpGet:
-              path: /actuator/health
+              path: /health
               port: 8082
             initialDelaySeconds: 40
             periodSeconds: 30
@@ -37,7 +47,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /actuator/health
+              path: /health
               port: 8082
             initialDelaySeconds: 10
             periodSeconds: 15

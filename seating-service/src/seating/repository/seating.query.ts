@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, LessThan } from 'typeorm';
+import { Repository, In, LessThan, EntityManager } from 'typeorm';
 import { Seat, SeatStatus } from '../entities/seat.entity';
 
 @Injectable()
@@ -58,9 +58,8 @@ export class SeatingQueryRepository {
             .getOne();
     }
 
-    async findByIdsWithLock(ids: number[]): Promise<Seat[]> {
-        return this.repo
-            .createQueryBuilder('seat')
+    async findByIdsWithLock(ids: number[], manager: EntityManager): Promise<Seat[]> {
+        return manager.createQueryBuilder(Seat, 'seat')
             .whereInIds(ids)
             .setLock('pessimistic_write')
             .getMany();

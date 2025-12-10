@@ -4,14 +4,14 @@ global:
 
 scrape_configs:
   - job_name: 'user-service'
-    metrics_path: '/actuator/prometheus'
+    metrics_path: '/metrics'
     static_configs:
       - targets: ['user-service:8081']
         labels:
           application: 'user-service'
 
   - job_name: 'seating-service'
-    metrics_path: '/actuator/prometheus'
+    metrics_path: '/metrics'
     static_configs:
       - targets: ['seating-service:8082']
         labels:
@@ -41,3 +41,9 @@ scrape_configs:
       - targets: ['catalog-service:4001']
         labels:
           application: 'catalog-service'
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+        labels:
+          application: 'redis'

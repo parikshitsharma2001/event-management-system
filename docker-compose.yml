@@ -41,6 +41,22 @@ services:
       timeout: 5s
       retries: 5
 
+  # Redis for Seating Service
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - ticketing-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - redis-data:/data
+
   # Payment Service Database
   paymentdb:
     image: postgres:14-alpine
@@ -131,16 +147,20 @@ services:
     ports:
       - "8081:8081"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://userdb:5432/userdb
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
+      PORT: 8081
+      DATABASE_HOST: userdb
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: userdb
+      JWT_SECRET: your-secret-key-here-make-it-long-and-secure
     depends_on:
       userdb:
         condition: service_healthy
     networks:
       - ticketing-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -155,16 +175,23 @@ services:
     ports:
       - "8082:8082"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://seatingdb:5432/seatingdb
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
+      PORT: 8082
+      DATABASE_HOST: seatingdb
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: seatingdb
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     depends_on:
       seatingdb:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - ticketing-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -257,7 +284,6 @@ services:
       retries: 3
       start_period: 40s
 
-
   # Prometheus for monitoring
   prometheus:
     image: prom/prometheus:latest
@@ -301,6 +327,7 @@ volumes:
   prometheus-data:
   grafana-data:
   catalog_data:
+  redis-data:
 
 networks:
   ticketing-network:

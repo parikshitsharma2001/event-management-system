@@ -21,15 +21,23 @@ spec:
           ports:
             - containerPort: 8081
           env:
-            - name: SPRING_DATASOURCE_URL
-              value: "jdbc:postgresql://userdb:5432/appdb"
-            - name: SPRING_DATASOURCE_USERNAME
+            - name: PORT
+              value: "8081"
+            - name: DATABASE_HOST
+              value: "userdb"
+            - name: DATABASE_PORT
+              value: "5432"
+            - name: DATABASE_USERNAME
               value: "appuser"
-            - name: SPRING_DATASOURCE_PASSWORD
+            - name: DATABASE_PASSWORD
               value: "changeme123"
+            - name: DATABASE_NAME
+              value: "appdb"
+            - name: JWT_SECRET
+              value: "your-secret-key-here-make-it-long-and-secure"
           livenessProbe:
             httpGet:
-              path: /actuator/health
+              path: /health
               port: 8081
             initialDelaySeconds: 40
             periodSeconds: 30
@@ -37,7 +45,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /actuator/health
+              path: /health
               port: 8081
             initialDelaySeconds: 10
             periodSeconds: 15
