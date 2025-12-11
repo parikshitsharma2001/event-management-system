@@ -30,12 +30,7 @@ export class UsersController {
     return { ok: true, service: 'user-service' };
   }
 
-  @Get('actuator/health')
-  actuatorHealth() {
-    return { status: 'UP', service: 'user-service' };
-  }
-
-  @Get('actuator/prometheus')
+  @Get('metrics')
   async getMetrics(@Res() res: Response) {
     res.setHeader('Content-Type', register.contentType);
     res.send(await register.metrics());

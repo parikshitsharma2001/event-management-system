@@ -19,6 +19,24 @@ import {
   SeatAllocationRequest,
 } from '../dto/seating.dto';
 import { SeatStatus } from '../entities/seat.entity';
+import * as client from 'prom-client';
+
+// --- PROMETHEUS SETUP --- //
+const register = new client.Registry();
+client.collectDefaultMetrics({ register });
+
+const userRegistrationsTotal = new client.Counter({
+  name: 'user_registrations_total',
+  help: 'Total number of user registrations',
+});
+
+const userLoginsTotal = new client.Counter({
+  name: 'user_logins_total',
+  help: 'Total number of user logins',
+});
+
+register.registerMetric(userRegistrationsTotal);
+register.registerMetric(userLoginsTotal);
 
 @Controller()
 export class SeatingController {
@@ -28,6 +46,13 @@ export class SeatingController {
   health() {
     return { ok: true, service: 'seating-service' };
   }
+
+  @Get('metrics')
+  async getMetrics(@Res() res: Response) {
+    res.setHeader('Content-Type', register.contentType);
+    res.send(await register.metrics());
+  }
+
 
   @Get('v1/seats/availability')
   async getSeatAvailability(@Query('eventId', ParseIntPipe) eventId: number) {

@@ -5,7 +5,7 @@ metadata:
 data:
   services-dashboard.json: |
     {
-      "title": "Event Ticketing Services",
+      "title": "Event Management System",
       "panels": [
         {
           "title": "Service Health",
