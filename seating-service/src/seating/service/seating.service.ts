@@ -104,7 +104,7 @@ export class SeatingService {
       }
 
       // Validate all seats belong to the same event
-      if (!seats.every((seat) => seat.eventId === request.eventId)) {
+      if (!seats.every((seat) => seat.eventId == request.eventId)) {
         throw new BadRequestException('All seats must belong to the same event');
       }
 
